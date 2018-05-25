@@ -1,5 +1,7 @@
 <?php
 
+namespace PHPGangsta\GoogleAuthenticator;
+
 /**
  * PHP Class for handling Google Authenticator 2-factor authentication.
  *
@@ -9,7 +11,7 @@
  *
  * @link http://www.phpgangsta.de/
  */
-class PHPGangsta_GoogleAuthenticator
+class GoogleAuthenticator
 {
     private $code_length = 6;
 
@@ -33,19 +35,20 @@ class PHPGangsta_GoogleAuthenticator
     /**
      * @param int $secretLength
      * @return string
-     * @throws Exception
+     * @throws \Exception
      */
     public function generateSecret($secretLength = 16)
     {
         // Valid secret lengths are 80 to 640 bits
         if ($secretLength < 16 || $secretLength > 128) {
-            throw new Exception('Bad secret length');
+            throw new \Exception('Bad secret length');
         }
 
         $rnd = false;
         if (function_exists('random_bytes')) {
             $rnd = random_bytes($secretLength);
         } elseif (function_exists('mcrypt_create_iv')) {
+            /** @noinspection PhpDeprecationInspection */
             $rnd = mcrypt_create_iv($secretLength, MCRYPT_DEV_URANDOM);
         } elseif (function_exists('openssl_random_pseudo_bytes')) {
             $rnd = openssl_random_pseudo_bytes($secretLength, $cryptoStrong);
@@ -55,7 +58,7 @@ class PHPGangsta_GoogleAuthenticator
         }
 
         if ($rnd === false) {
-            throw new Exception('No source of secure random');
+            throw new \Exception('No source of secure random');
         }
 
         return $this->generateSecretFromString($rnd);
@@ -107,6 +110,28 @@ class PHPGangsta_GoogleAuthenticator
         }
 
         return false;
+    }
+
+    /**
+     * Get QR-Code URL for image, from google charts.
+     *
+     * @param string $name
+     * @param string $secret
+     * @param string $title
+     * @param array  $params
+     *
+     * @return string
+     */
+    public function getQRCodeGoogleUrl($name, $secret, $title = null, $params = array())
+    {
+        $width = !empty($params['width']) && (int) $params['width'] > 0 ? (int) $params['width'] : 200;
+        $height = !empty($params['height']) && (int) $params['height'] > 0 ? (int) $params['height'] : 200;
+        $level = !empty($params['level']) && array_search($params['level'], array('L', 'M', 'Q', 'H')) !== false ? $params['level'] : 'M';
+        $urlencoded = urlencode('otpauth://totp/'.$name.'?secret='.$secret.'');
+        if (isset($title)) {
+            $urlencoded .= urlencode('&issuer='.urlencode($title));
+        }
+        return 'https://chart.googleapis.com/chart?chs='.$width.'x'.$height.'&chld='.$level.'|0&cht=qr&chl='.$urlencoded.'';
     }
 
     /**

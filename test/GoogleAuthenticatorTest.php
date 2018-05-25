@@ -1,15 +1,20 @@
 <?php
 
-require_once __DIR__.'/../vendor/autoload.php';
+/** @noinspection PhpUnhandledExceptionInspection */
 
-class GoogleAuthenticatorTest extends PHPUnit_Framework_TestCase
+namespace PHPGangsta\GoogleAuthenticator\Test;
+
+use PHPGangsta\GoogleAuthenticator\GoogleAuthenticator;
+use PHPUnit\Framework\TestCase;
+
+class GoogleAuthenticatorTest extends TestCase
 {
-    /* @var $googleAuthenticator PHPGangsta_GoogleAuthenticator */
+    /* @var $googleAuthenticator GoogleAuthenticator */
     protected $googleAuthenticator;
 
     protected function setUp()
     {
-        $this->googleAuthenticator = new PHPGangsta_GoogleAuthenticator();
+        $this->googleAuthenticator = new GoogleAuthenticator();
     }
 
     public function codeProvider()
@@ -24,15 +29,15 @@ class GoogleAuthenticatorTest extends PHPUnit_Framework_TestCase
 
     public function testItCanBeInstantiated()
     {
-        $ga = new PHPGangsta_GoogleAuthenticator();
+        $ga = new GoogleAuthenticator();
 
-        $this->assertInstanceOf('PHPGangsta_GoogleAuthenticator', $ga);
+        $this->assertInstanceOf(GoogleAuthenticator::class, $ga);
     }
 
     public function testCreateSecretDefaultsToSixteenCharacters()
     {
         $ga = $this->googleAuthenticator;
-        $secret = $ga->createSecret();
+        $secret = $ga->generateSecret();
 
         $this->assertEquals(strlen($secret), 16);
     }
@@ -42,7 +47,7 @@ class GoogleAuthenticatorTest extends PHPUnit_Framework_TestCase
         $ga = $this->googleAuthenticator;
 
         for ($secretLength = 16; $secretLength < 100; ++$secretLength) {
-            $secret = $ga->createSecret($secretLength);
+            $secret = $ga->generateSecret($secretLength);
 
             $this->assertEquals(strlen($secret), $secretLength);
         }
@@ -50,6 +55,9 @@ class GoogleAuthenticatorTest extends PHPUnit_Framework_TestCase
 
     /**
      * @dataProvider codeProvider
+     * @param $secret
+     * @param $timeSlice
+     * @param $code
      */
     public function testGetCodeReturnsCorrectValues($secret, $timeSlice, $code)
     {
@@ -71,7 +79,7 @@ class GoogleAuthenticatorTest extends PHPUnit_Framework_TestCase
         $this->assertEquals($urlParts['host'], 'chart.googleapis.com');
         $this->assertEquals($urlParts['path'], '/chart');
 
-        $expectedChl = 'otpauth://totp/'.$name.'?secret='.$secret;
+        $expectedChl = 'otpauth://totp/' . $name . '?secret=' . $secret;
 
         $this->assertEquals($queryStringArray['chl'], $expectedChl);
     }
@@ -97,7 +105,7 @@ class GoogleAuthenticatorTest extends PHPUnit_Framework_TestCase
         $result = $this->googleAuthenticator->verifyCode($secret, $code);
         $this->assertEquals(true, $result);
 
-        $code = '0'.$code;
+        $code = '0' . $code;
         $result = $this->googleAuthenticator->verifyCode($secret, $code);
         $this->assertEquals(false, $result);
     }
@@ -106,6 +114,6 @@ class GoogleAuthenticatorTest extends PHPUnit_Framework_TestCase
     {
         $result = $this->googleAuthenticator->setCodeLength(6);
 
-        $this->assertInstanceOf('PHPGangsta_GoogleAuthenticator', $result);
+        $this->assertInstanceOf(GoogleAuthenticator::class, $result);
     }
 }
